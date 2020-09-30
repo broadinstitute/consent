@@ -35,6 +35,7 @@ import org.broadinstitute.consent.http.authentication.BasicAuthenticator;
 import org.broadinstitute.consent.http.authentication.BasicCustomAuthFilter;
 import org.broadinstitute.consent.http.authentication.DefaultAuthFilter;
 import org.broadinstitute.consent.http.authentication.DefaultAuthenticator;
+import org.broadinstitute.consent.http.authentication.NotFoundRolesAllowedDynamicFeature;
 import org.broadinstitute.consent.http.authentication.OAuthAuthenticator;
 import org.broadinstitute.consent.http.authentication.OAuthCustomAuthFilter;
 import org.broadinstitute.consent.http.cloudstore.GCSHealthCheck;
@@ -147,7 +148,6 @@ import org.dhatim.dropwizard.sentry.logging.UncaughtExceptionHandlers;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
-import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -310,7 +310,7 @@ public class ConsentApplication extends Application<ConsentConfiguration> {
                 new BasicCustomAuthFilter(new BasicAuthenticator(config.getBasicAuthentication())),
                 new OAuthCustomAuthFilter(AbstractOAuthAuthenticator.getInstance(), userRoleDAO));
         env.jersey().register(new AuthDynamicFeature(new ChainedAuthFilter(filters)));
-        env.jersey().register(RolesAllowedDynamicFeature.class);
+        env.jersey().register(NotFoundRolesAllowedDynamicFeature.class);
         env.jersey().register(new AuthValueFactoryProvider.Binder<>(AuthUser.class));
         env.jersey().register(new StatusResource(env.healthChecks()));
         env.jersey().register(new DataRequestReportsResource(researcherService, userService));
