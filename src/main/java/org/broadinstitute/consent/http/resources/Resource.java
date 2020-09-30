@@ -1,21 +1,5 @@
 package org.broadinstitute.consent.http.resources;
 
-import org.apache.commons.io.IOUtils;
-import org.broadinstitute.consent.http.enumeration.UserRoles;
-import org.broadinstitute.consent.http.exceptions.UpdateConsentException;
-import org.broadinstitute.consent.http.models.User;
-import org.broadinstitute.consent.http.models.dto.Error;
-import org.broadinstitute.consent.http.service.UnknownIdentifierException;
-import org.broadinstitute.consent.http.service.users.handler.UserRoleHandlerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
@@ -24,6 +8,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import org.apache.commons.io.IOUtils;
+import org.broadinstitute.consent.http.enumeration.UserRoles;
+import org.broadinstitute.consent.http.exceptions.UpdateConsentException;
+import org.broadinstitute.consent.http.models.User;
+import org.broadinstitute.consent.http.models.dto.Error;
+import org.broadinstitute.consent.http.service.UnknownIdentifierException;
+import org.broadinstitute.consent.http.service.users.handler.UserRoleHandlerException;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.owasp.fileio.FileValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by egolin on 9/17/14.
@@ -51,11 +53,11 @@ abstract public class Resource {
             if (handler != null) {
                 return handler.handle(e);
             } else {
-                return Response.serverError().entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build();
+                return Response.serverError().type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build();
             }
         } catch (Throwable t) {
             logger().error(t.getMessage());
-            return Response.serverError().entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build();
+            return Response.serverError().type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build();
         }
     }
 
@@ -70,6 +72,18 @@ abstract public class Resource {
         };
     }
 
+    protected void validateFileDetails(FormDataContentDisposition fileDetail) {
+        FileValidator validator = new FileValidator();
+        boolean validName = validator.isValidFileName("validating uploaded file name", fileDetail.getFileName(), true);
+        if (!validName) {
+            throw new IllegalArgumentException("File name is invalid");
+        }
+        boolean validSize = validator.getMaxFileUploadSize() >= fileDetail.getSize();
+        if (!validSize) {
+            throw new IllegalArgumentException("File size is invalid. Max size is: " + validator.getMaxFileUploadSize()/1000000 + " MB");
+        }
+    }
+
     private interface ExceptionHandler {
         Response handle(Exception e);
     }
@@ -78,31 +92,31 @@ abstract public class Resource {
 
     static {
         dispatch.put(UserRoleHandlerException.class, e ->
-                Response.status(Response.Status.CONFLICT).entity(new Error(e.getMessage(), Response.Status.CONFLICT.getStatusCode())).build());
+                Response.status(Response.Status.CONFLICT).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.CONFLICT.getStatusCode())).build());
         dispatch.put(UnsupportedOperationException.class, e ->
-                Response.status(Response.Status.CONFLICT).entity(new Error(e.getMessage(), Response.Status.CONFLICT.getStatusCode())).build());
+                Response.status(Response.Status.CONFLICT).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.CONFLICT.getStatusCode())).build());
         dispatch.put(IllegalArgumentException.class, e ->
-                Response.status(Response.Status.BAD_REQUEST).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
+                Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
         dispatch.put(IOException.class, e ->
-                Response.status(Response.Status.BAD_REQUEST).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
+                Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
         dispatch.put(BadRequestException.class, e ->
-                Response.status(Response.Status.BAD_REQUEST).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
+                Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
         dispatch.put(NotAuthorizedException.class, e ->
-                Response.status(Response.Status.UNAUTHORIZED).entity(new Error(e.getMessage(), Response.Status.UNAUTHORIZED.getStatusCode())).build());
+                Response.status(Response.Status.UNAUTHORIZED).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.UNAUTHORIZED.getStatusCode())).build());
         dispatch.put(ForbiddenException.class, e ->
-                Response.status(Response.Status.FORBIDDEN).entity(new Error(e.getMessage(), Response.Status.FORBIDDEN.getStatusCode())).build());
+                Response.status(Response.Status.FORBIDDEN).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.FORBIDDEN.getStatusCode())).build());
         dispatch.put(NotFoundException.class, e ->
-                Response.status(Response.Status.NOT_FOUND).entity(new Error(e.getMessage(), Response.Status.NOT_FOUND.getStatusCode())).build());
+                Response.status(Response.Status.NOT_FOUND).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.NOT_FOUND.getStatusCode())).build());
         dispatch.put(UnknownIdentifierException.class, e ->
-                Response.status(Response.Status.NOT_FOUND).entity(new Error(e.getMessage(), Response.Status.NOT_FOUND.getStatusCode())).build());
+                Response.status(Response.Status.NOT_FOUND).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.NOT_FOUND.getStatusCode())).build());
         dispatch.put(UpdateConsentException.class, e ->
-                Response.status(Response.Status.BAD_REQUEST).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
+                Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.BAD_REQUEST.getStatusCode())).build());
         dispatch.put(SQLSyntaxErrorException.class, e ->
-                Response.serverError().entity(new Error("Database Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
+                Response.serverError().type(MediaType.APPLICATION_JSON).entity(new Error("Database Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
         dispatch.put(SQLException.class, e ->
-                Response.serverError().entity(new Error("Database Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
+                Response.serverError().type(MediaType.APPLICATION_JSON).entity(new Error("Database Error", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
         dispatch.put(Exception.class, e ->
-                Response.serverError().entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
+                Response.serverError().type(MediaType.APPLICATION_JSON).entity(new Error(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode())).build());
 
     }
 
