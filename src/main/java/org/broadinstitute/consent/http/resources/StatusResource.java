@@ -30,7 +30,9 @@ public class StatusResource {
     Map<String, HealthCheck.Result> results = healthChecks.runHealthChecks();
     StatusCheckResponse response = formatResponse(results);
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    return Response.ok(gson.toJson(response)).build();
+    return response.isOk()
+        ? Response.ok(gson.toJson(response)).build()
+        : Response.serverError().entity(gson.toJson(response)).build();
   }
 
   private StatusCheckResponse formatResponse(Map<String, HealthCheck.Result> results) {
