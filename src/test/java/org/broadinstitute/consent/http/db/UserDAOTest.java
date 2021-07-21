@@ -1,11 +1,18 @@
 package org.broadinstitute.consent.http.db;
 
-import static org.broadinstitute.consent.http.enumeration.RoleStatus.getStatusByValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.broadinstitute.consent.http.enumeration.RoleStatus;
+import org.broadinstitute.consent.http.enumeration.UserFields;
+import org.broadinstitute.consent.http.enumeration.UserRoles;
+import org.broadinstitute.consent.http.models.Consent;
+import org.broadinstitute.consent.http.models.Dac;
+import org.broadinstitute.consent.http.models.DataSet;
+import org.broadinstitute.consent.http.models.Election;
+import org.broadinstitute.consent.http.models.Institution;
+import org.broadinstitute.consent.http.models.User;
+import org.broadinstitute.consent.http.models.UserProperty;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,19 +20,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.broadinstitute.consent.http.enumeration.UserFields;
-import org.broadinstitute.consent.http.enumeration.RoleStatus;
-import org.broadinstitute.consent.http.enumeration.UserRoles;
-import org.broadinstitute.consent.http.models.Consent;
-import org.broadinstitute.consent.http.models.Dac;
-import org.broadinstitute.consent.http.models.DataSet;
-import org.broadinstitute.consent.http.models.Election;
-import org.broadinstitute.consent.http.models.Institution;
-import org.broadinstitute.consent.http.models.UserProperty;
-import org.broadinstitute.consent.http.models.User;
-import org.junit.Assert;
-import org.junit.Test;
+
+import static org.broadinstitute.consent.http.enumeration.RoleStatus.getStatusByValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class UserDAOTest extends DAOTestHelper {
 
@@ -38,7 +38,7 @@ public class UserDAOTest extends DAOTestHelper {
         addUserRole(UserRoles.ADMIN.getRoleId(), user.getDacUserId());
         addUserRole(UserRoles.RESEARCHER.getRoleId(), user.getDacUserId());
         addUserRole(UserRoles.DATAOWNER.getRoleId(), user.getDacUserId());
-        
+
         User user2 = userDAO.findUserById(user.getDacUserId());
         assertNotNull(user2);
         assertEquals(user.getEmail(), user2.getEmail());
@@ -52,7 +52,7 @@ public class UserDAOTest extends DAOTestHelper {
             .anyMatch(r -> r.getRoleId().equals(UserRoles.RESEARCHER.getRoleId())));
         assertTrue(user2.getRoles().stream()
             .anyMatch(r -> r.getRoleId().equals(UserRoles.DATAOWNER.getRoleId())));
-        
+
         //assert institution base data is present if available
         User user3 = createUserWithInstitution();
         User queriedUser3 = userDAO.findUserById(user3.getDacUserId());
@@ -191,14 +191,6 @@ public class UserDAOTest extends DAOTestHelper {
         User user2 = userDAO.findUserById(user.getDacUserId());
         assertEquals(user2.getAdditionalEmail(), newEmail);
         assertEquals(user2.getInstitution().getId(), firstInstitute.getId());
-    }
-
-    @Test
-    public void testDeleteDACUserByEmail() {
-        User user = createUser();
-        userDAO.deleteUserByEmail(user.getEmail());
-        User foundUser = userDAO.findUserByEmail(user.getEmail());
-        assertNull(foundUser);
     }
 
     @Test
